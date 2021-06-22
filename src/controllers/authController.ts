@@ -33,7 +33,8 @@ export default class AuthController {
         } else {
           res.status(500).end();
         }
-      });
+      })
+      .catch((err) => console.log('Auth Service sign up error: ', err));
   }
 
   signIn(req: Request, res: Response) {
@@ -42,19 +43,22 @@ export default class AuthController {
       return res.status(422).json({ errors: result.array() });
     }
 
-    new CognitoService().signInUser(req.body.username, req.body.password).then((result) => {
-      if ((result as AWSError).code === 'NotAuthorizedException') {
-        res
-          .status(500)
-          .json({ errors: ['Incorrect username or password'] })
-          .end();
-      } else {
-        res
-          .status(200)
-          .json({ token: (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult })
-          .end();
-      }
-    });
+    new CognitoService()
+      .signInUser(req.body.username, req.body.password)
+      .then((result) => {
+        if ((result as AWSError).code === 'NotAuthorizedException') {
+          res
+            .status(500)
+            .json({ errors: ['Incorrect username or password'] })
+            .end();
+        } else {
+          res
+            .status(200)
+            .json({ token: (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult })
+            .end();
+        }
+      })
+      .catch((err) => console.log('Auth Service sign in error: ', err));
   }
 
   verify(req: Request, res: Response) {
@@ -64,13 +68,16 @@ export default class AuthController {
     }
     console.log('verify body is valid');
 
-    new CognitoService().verifyAccount(req.body.username, req.body.code).then((isSuccessfull) => {
-      if (isSuccessfull) {
-        res.status(200).end();
-      } else {
-        res.status(500).end();
-      }
-    });
+    new CognitoService()
+      .verifyAccount(req.body.username, req.body.code)
+      .then((isSuccessfull) => {
+        if (isSuccessfull) {
+          res.status(200).end();
+        } else {
+          res.status(500).end();
+        }
+      })
+      .catch((err) => console.log('Auth Service verify error: ', err));
   }
 
   private validateBody(type: AuthRoute) {

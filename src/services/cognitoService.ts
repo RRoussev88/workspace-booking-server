@@ -14,7 +14,7 @@ export default class CognitoService {
     userAttr: CognitoIdentityServiceProvider.Types.AttributeListType,
   ): Promise<boolean> {
     const params: CognitoIdentityServiceProvider.Types.SignUpRequest = {
-      ClientId: process.env.CUSTOMER_ID,
+      ClientId: process.env.CLIENT_ID,
       Username: username,
       Password: password,
       SecretHash: this.generateHash(username),
@@ -33,7 +33,7 @@ export default class CognitoService {
 
   async verifyAccount(username: string, code: string): Promise<boolean> {
     const params: CognitoIdentityServiceProvider.Types.ConfirmSignUpRequest = {
-      ClientId: process.env.CUSTOMER_ID,
+      ClientId: process.env.CLIENT_ID,
       Username: username,
       SecretHash: this.generateHash(username),
       ConfirmationCode: code,
@@ -54,7 +54,7 @@ export default class CognitoService {
     password: string,
   ): Promise<CognitoIdentityServiceProvider.Types.InitiateAuthResponse | AWSError> {
     const params: CognitoIdentityServiceProvider.Types.InitiateAuthRequest = {
-      ClientId: process.env.CUSTOMER_ID,
+      ClientId: process.env.CLIENT_ID,
       AuthFlow: 'USER_PASSWORD_AUTH',
       AuthParameters: {
         USERNAME: username,
@@ -76,6 +76,6 @@ export default class CognitoService {
   private generateHash = (username: string) =>
     crypto
       .createHmac('SHA256', process.env.SECRET_HASH)
-      .update(username + process.env.CUSTOMER_ID)
+      .update(username + process.env.CLIENT_ID)
       .digest('base64');
 }
