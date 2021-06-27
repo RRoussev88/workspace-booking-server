@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { CognitoIdentityServiceProvider, AWSError } from 'aws-sdk';
+import jwt from 'jsonwebtoken';
 import { AuthRoute } from '../types';
 import CognitoService from '../services/cognitoService';
 
@@ -52,10 +53,9 @@ export default class AuthController {
             .json({ errors: ['Incorrect username or password'] })
             .end();
         } else {
-          res
-            .status(200)
-            .json({ token: (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult })
-            .end();
+          const token = (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult;
+          const decodedJwt = jwt.decode(token.AccessToken, { complete: true });
+          res.status(200).json({ token, coworkerId: decodedJwt.payload?.sub }).end();
         }
       })
       .catch((err) => console.log('Auth Service sign in error: ', err));

@@ -6,9 +6,6 @@ import fetch from 'node-fetch';
 const pems = {};
 
 export default class AuthMiddleware {
-  private poolRegion = 'eu-central-1';
-  private userPoolId = 'eu-central-1_SoSU9O17f';
-
   constructor() {
     this.setup();
   }
@@ -30,7 +27,7 @@ export default class AuthMiddleware {
   }
 
   private async setup() {
-    const url = `https://cognito-idp.${this.poolRegion}.amazonaws.com/${this.userPoolId}/.well-known/jwks.json`;
+    const url = `https://cognito-idp.${process.env.POOL_REGION}.amazonaws.com/${process.env.USER_POOL_ID}/.well-known/jwks.json`;
 
     try {
       const response = await fetch(url);
