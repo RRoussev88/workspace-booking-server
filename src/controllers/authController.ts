@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { CognitoIdentityServiceProvider, AWSError } from 'aws-sdk';
 import jwt from 'jsonwebtoken';
-import { AuthRoute } from '../types';
+import { AuthRoute, CoworkerPayload } from '../types';
 import CognitoService from '../services/cognitoService';
 
 export default class AuthController {
@@ -55,7 +55,15 @@ export default class AuthController {
         } else {
           const token = (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult;
           const decodedJwt = jwt.decode(token.AccessToken, { complete: true });
-          res.status(200).json({ token, coworkerId: decodedJwt.payload?.sub }).end();
+          const payload: CoworkerPayload = {
+            coworkerId: decodedJwt.payload?.sub,
+            coworkerName: decodedJwt.payload?.username,
+            authTime: decodedJwt.payload?.auth_time,
+            issueTime: decodedJwt.payload?.iat,
+            expTime: decodedJwt.payload?.exp,
+            organisations: decodedJwt.payload?.['cognito:groups']
+          };
+          res.status(200).json({ token, payload }).end();
         }
       })
       .catch((err) => console.log('Auth Service sign in error: ', err));

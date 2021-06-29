@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import DynamoService from '../services/dynamoService';
+import { TableName } from '../types';
 
 export default class OfficesController {
   path = '/offices';
@@ -15,10 +16,10 @@ export default class OfficesController {
 
   getOffices(req: Request, res: Response) {
     new DynamoService()
-      .getOffices()
+      .getDocuments(TableName.OFFICES)
       .then((offices) => {
         res.json({ offices });
       })
-      .catch((err) => console.log('Offices Service get offices error: ', err));
+      .catch((err) => console.log('Get offices error: ', err));
   }
 }

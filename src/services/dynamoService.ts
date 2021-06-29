@@ -1,6 +1,5 @@
 import { config, DynamoDB } from 'aws-sdk';
 import { TableName } from '../types';
-import { v4 as uuidv4 } from 'uuid';
 
 export default class DynamoService {
   dynamoClient: DynamoDB.DocumentClient;
@@ -19,5 +18,17 @@ export default class DynamoService {
     this.dynamoClient = new DynamoDB.DocumentClient();
   }
 
-  getOffices = async () => await this.dynamoClient.scan({ TableName: TableName.OFFICES }).promise();
+  getDocuments = async (TableName: TableName) => await this.dynamoClient.scan({ TableName }).promise();
+
+  getDocument = async (TableName: TableName, IndexName: string) =>
+    await this.dynamoClient.scan({ TableName, IndexName }).promise();
+
+  getDocumentById = async (TableName: TableName, id: string) =>
+    await this.dynamoClient.get({ TableName, Key: { id } }).promise();
+
+  addDocument = async (TableName: TableName, document: DynamoDB.DocumentClient.PutItemInputAttributeMap) =>
+    await this.dynamoClient.put({ TableName, Item: document }).promise();
+
+  deleteDocument = async (TableName: TableName, id: string) =>
+    await this.dynamoClient.delete({ TableName, Key: { id } }).promise();
 }
