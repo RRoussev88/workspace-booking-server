@@ -20,15 +20,12 @@ export default class DynamoService {
 
   getDocuments = async (TableName: TableName) => await this.dynamoClient.scan({ TableName }).promise();
 
-  getDocument = async (TableName: TableName, IndexName: string) =>
-    await this.dynamoClient.scan({ TableName, IndexName }).promise();
-
-  getDocumentById = async (TableName: TableName, id: string) =>
-    await this.dynamoClient.get({ TableName, Key: { id } }).promise();
+  getDocumentById = async (TableName: TableName, documentId: string) =>
+    await this.dynamoClient.get({ TableName, Key: { id: documentId } }).promise();
 
   addDocument = async (TableName: TableName, document: DynamoDB.DocumentClient.PutItemInputAttributeMap) =>
     await this.dynamoClient.put({ TableName, Item: document }).promise();
 
-  deleteDocument = async (TableName: TableName, id: string) =>
-    await this.dynamoClient.delete({ TableName, Key: { id } }).promise();
+  deleteDocument = async (TableName: TableName, documentId: string) =>
+    await this.dynamoClient.delete({ TableName, Key: { id: documentId } }).promise();
 }

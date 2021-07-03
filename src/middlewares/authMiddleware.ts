@@ -41,6 +41,7 @@ export default class AuthMiddleware {
       });
     } catch (error) {
       console.log('Error fetching jwk: ', error);
+      throw error;
     }
   }
 }
