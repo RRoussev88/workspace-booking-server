@@ -6,8 +6,8 @@ import { AuthRoute, CoworkerPayload } from '../types';
 import CognitoService from '../services/cognitoService';
 
 export default class AuthController {
-  public path = '/auth';
-  public router = express.Router();
+  path = '/auth';
+  router = express.Router();
 
   constructor() {
     this.initRoutes();
@@ -66,7 +66,7 @@ export default class AuthController {
           res.status(200).json({ token, payload }).end();
         }
       })
-      .catch((err) => console.log('Auth Service sign in error: ', err));
+      .catch((error: AWSError) => res.status(error.statusCode).json({ error }));
   }
 
   verify(req: Request, res: Response) {

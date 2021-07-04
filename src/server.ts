@@ -3,8 +3,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import App from './app';
 import AuthController from './controllers/authController';
-import HomeController from './controllers/homeController';
-import ProtectedController from './controllers/protectedController';
 import OfficesController from './controllers/officesController';
 import OpenOrgsController from './controllers/openOrgController';
 
@@ -12,13 +10,7 @@ dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
 
 const app = new App({
   port: 8000,
-  controllers: [
-    new HomeController(),
-    new AuthController(),
-    new ProtectedController(),
-    new OfficesController(),
-    new OpenOrgsController(),
-  ],
+  controllers: [new AuthController(), new OfficesController(), new OpenOrgsController()],
   middlewares: [cors(), express.json(), express.urlencoded({ extended: true })],
 });
 
