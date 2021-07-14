@@ -23,6 +23,7 @@ export enum OrgType {
 
 export type CoworkerPayload = Partial<{
   coworkerId: string;
+  coworkerEmail: string;
   coworkerName: string;
   authTime: number;
   issueTime: number;

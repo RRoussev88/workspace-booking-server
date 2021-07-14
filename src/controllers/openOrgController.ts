@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import AuthMiddleware from '../middlewares/authMiddleware';
 import DynamoService from '../services/dynamoService';
 import { TableName } from '../types';
@@ -21,19 +21,40 @@ export default class OpenOrgsController {
     this.router.delete('/:id', this.deleteOpenOrg);
   }
 
-  getAllOpenOrgs(_: Request, res: Response) {
-    new DynamoService().getDocuments(TableName.COWORKING_SPACES).then((orgs) => res.json(orgs));
+  getAllOpenOrgs(_: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocuments(TableName.COWORKING_SPACES)
+      .then((orgs) => res.json(orgs))
+      .catch((error) => {
+        next(error);
+      });
   }
 
-  getOpenOrgById(req: Request, res: Response) {
-    new DynamoService().getDocumentById(TableName.COWORKING_SPACES, req.params.id).then((org) => res.json(org));
+  getOpenOrgById(req: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.COWORKING_SPACES, req.params.id)
+      .then((org) => res.json(org))
+      .catch((error) => {
+        next(error);
+      });
   }
 
-  addOpenOrg(req: Request, res: Response) {
-    new DynamoService().addDocument(TableName.COWORKING_SPACES, req.body.openOrg).then((org) => res.json(org));
+  addOpenOrg(req: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .addDocument(TableName.COWORKING_SPACES, req.body.openOrg)
+      .then((org) => res.json(org))
+      .catch((error) => {
+        console.log('catched:', error);
+        next(error);
+      });
   }
 
-  deleteOpenOrg(req: Request, res: Response) {
-    new DynamoService().deleteDocument(TableName.COWORKING_SPACES, req.params.id).then((org) => res.json(org));
+  deleteOpenOrg(req: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .deleteDocument(TableName.COWORKING_SPACES, req.params.id)
+      .then((org) => res.json(org))
+      .catch((error) => {
+        next(error);
+      });
   }
 }

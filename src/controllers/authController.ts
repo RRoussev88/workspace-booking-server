@@ -57,6 +57,7 @@ export default class AuthController {
           const decodedJwt = jwt.decode(token.AccessToken, { complete: true });
           const payload: CoworkerPayload = {
             coworkerId: decodedJwt.payload?.sub,
+            coworkerEmail: req.body.username,
             coworkerName: decodedJwt.payload?.username,
             authTime: decodedJwt.payload?.auth_time,
             issueTime: decodedJwt.payload?.iat,

@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 
 export default class App {
   public app: Application;
@@ -10,8 +10,8 @@ export default class App {
 
     this.middlewares(appInit.middlewares);
     this.routes(appInit.controllers);
-    this.app.use((error, req, res, next) =>
-      res.status(error.statusCode || 500).json({ message: error.message?.toString() || 'Internal Server Error' }),
+    this.app.use((error, req: Request, res: Response, next: NextFunction) =>
+      res.status(error.statusCode || 500).send(error.message?.toString() ?? 'Internal Server Error'),
     );
   }
 

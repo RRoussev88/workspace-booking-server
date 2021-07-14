@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import jwkToPem from 'jwk-to-pem';
 import fetch from 'node-fetch';
@@ -10,7 +10,7 @@ export default class AuthMiddleware {
     this.setup();
   }
 
-  verifyToken(req: Request, res: Response, next: Function) {
+  verifyToken(req: Request, res: Response, next: NextFunction) {
     const token = req.header('Authorization')?.split(' ')?.[1];
     if (!token) res.status(401).end();
 
