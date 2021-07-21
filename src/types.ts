@@ -5,7 +5,7 @@ export enum AuthRoute {
 }
 
 export enum TableName {
-  OFFICES = 'offices',
+  SIMPLE_OFFICES = 'simple-offices',
   COWORKING_SPACES = 'coworking-spaces',
   COMPANIES = 'companies',
 }
@@ -33,7 +33,7 @@ export type CoworkerPayload = Partial<{
 
 export type Office = {
   id: string;
-  organisationId: string;
+  organizationId: string;
   type: OfficeType;
   name: string;
   address: string;
@@ -47,7 +47,7 @@ export type Office = {
   // printers: number;
 };
 
-export type Organisation = {
+export type Organization = {
   id: string;
   name: string;
   type: OrgType;

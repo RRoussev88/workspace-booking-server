@@ -17,8 +17,14 @@ export default class OpenOrgsController {
     this.router.use(this.authMiddleware.verifyToken);
     this.router.get('/', this.getAllOpenOrgs);
     this.router.put('/', this.addOpenOrg);
+    this.router.patch('/', this.authMiddleware.checkOrgPermissions, this.updateOpenOrg);
     this.router.get('/:id', this.getOpenOrgById);
-    this.router.delete('/:id', this.deleteOpenOrg);
+    this.router.delete(
+      '/:id',
+      this.getAndForwardOpenOrgById,
+      this.authMiddleware.checkOrgPermissions,
+      this.deleteOpenOrg,
+    );
   }
 
   getAllOpenOrgs(_: Request, res: Response, next: NextFunction) {
@@ -39,12 +45,32 @@ export default class OpenOrgsController {
       });
   }
 
+  getAndForwardOpenOrgById(req: Request, _: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.COWORKING_SPACES, req.params.id)
+      .then((org) => {
+        req.body.openOrg = org.Item;
+        next();
+      })
+      .catch((error) => {
+        next(error);
+      });
+  }
+
   addOpenOrg(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
       .addDocument(TableName.COWORKING_SPACES, req.body.openOrg)
       .then((org) => res.json(org))
       .catch((error) => {
-        console.log('catched:', error);
+        next(error);
+      });
+  }
+
+  updateOpenOrg(req: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .updateDocument(TableName.COWORKING_SPACES, req.body.openOrg)
+      .then((org) => res.json(org))
+      .catch((error) => {
         next(error);
       });
   }

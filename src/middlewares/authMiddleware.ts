@@ -1,7 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import jwkToPem from 'jwk-to-pem';
 import fetch from 'node-fetch';
+import { Organization } from 'types';
+
+const ERROR_MESSAGE = 'Unauthorized credentials';
 
 const pems = {};
 
@@ -12,18 +15,41 @@ export default class AuthMiddleware {
 
   verifyToken(req: Request, res: Response, next: NextFunction) {
     const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end();
+    if (!token) res.status(401).end(ERROR_MESSAGE);
 
     const decodedJwt = jwt.decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end();
-
+    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+ 
     const kid = decodedJwt.header.kid;
-    if (!pems[kid]) res.status(401).end();
+    if (!pems[kid]) res.status(401).end(ERROR_MESSAGE);
+
+    const expirationTime = decodedJwt.payload.exp;
+    if (expirationTime * 1000 < new Date().valueOf()) res.status(401).end(ERROR_MESSAGE);
 
     jwt.verify(token, pems[kid], (err) => {
-      if (err) res.status(401).end();
+      if (err) res.status(401).end(ERROR_MESSAGE);
       next();
     });
+  }
+
+  checkOrgPermissions(
+    req: Request<{}, { Attributes: Organization } | string, { openOrg: Organization }>,
+    res: Response<{ Attributes: Organization } | string>,
+    next: NextFunction,
+  ) {
+    const token = req.header('Authorization')?.split(' ')?.[1];
+    if (!token) res.status(401).end(ERROR_MESSAGE);
+
+    const decodedJwt = jwt.decode(token, { complete: true });
+    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+
+    const username = decodedJwt.payload?.username;
+    const orgContacts = req.body.openOrg?.contact;
+    if (!!username && !!orgContacts && orgContacts.toString().includes(username)) {
+      next();
+    } else {
+      res.status(401).send('Unauthorized organization change');
+    }
   }
 
   private async setup() {
@@ -40,7 +66,6 @@ export default class AuthMiddleware {
         pems[key.kid] = jwkToPem({ kty: key.kty, n: key.n, e: key.e });
       });
     } catch (error) {
-      console.log('Error fetching jwk: ', error);
       throw error;
     }
   }
