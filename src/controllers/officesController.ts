@@ -12,14 +12,32 @@ export default class OfficesController {
     this.authMiddleware = new AuthMiddleware();
     this.initRoutes();
   }
-  // TODO: Validate permissions
+
   private initRoutes() {
     this.router.use(this.authMiddleware.verifyToken);
     this.router.get('/', this.getAllOffices);
     this.router.get('/org/:orgId', this.getAllOfficesByOrgId);
-    this.router.put('/', this.addOffice);
+    this.router.put('/', this.authMiddleware.checkOfficePermissions, this.addOffice);
+    this.router.patch('/', this.authMiddleware.checkOfficePermissions, this.updateOffice);
     this.router.get('/:id', this.getOfficeById);
-    this.router.delete('/:id', this.deleteOffice);
+    this.router.delete(
+      '/:id/org/:orgId',
+      this.getAndForwardSimpleOfficeById,
+      this.authMiddleware.checkOfficePermissions,
+      this.deleteOffice,
+    );
+  }
+
+  private getAndForwardSimpleOfficeById(req: Request, _: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.SIMPLE_OFFICES, req.params.id)
+      .then((org) => {
+        req.body.simpleOffice = org.Item;
+        next();
+      })
+      .catch((error) => {
+        next(error);
+      });
   }
 
   getAllOffices(_: Request, res: Response, next: NextFunction) {
@@ -54,13 +72,18 @@ export default class OfficesController {
   }
 
   addOffice(req: Request, res: Response, next: NextFunction) {
-    console.log('office: ', req.body.simpleOffice);
     new DynamoService()
       .addDocument(TableName.SIMPLE_OFFICES, req.body.simpleOffice)
-      .then((office) => {
-        console.log('office res: ', office);
-        res.json(office);
-      })
+      .then((office) => res.json(office))
+      .catch((error) => {
+        next(error);
+      });
+  }
+
+  updateOffice(req: Request, res: Response, next: NextFunction) {
+    new DynamoService()
+      .updateDocument(TableName.SIMPLE_OFFICES, req.body.simpleOffice)
+      .then((org) => res.json(org))
       .catch((error) => {
         next(error);
       });
@@ -68,8 +91,8 @@ export default class OfficesController {
 
   deleteOffice(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .deleteDocument(TableName.SIMPLE_OFFICES, req.params.id)
-      .then((office) => res.json(office))
+      .deleteOfficeTransaction(req.params.orgId, req.params.id)
+      .then((result) => res.json(result))
       .catch((error) => {
         next(error);
       });

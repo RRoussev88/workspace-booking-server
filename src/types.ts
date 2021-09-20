@@ -33,15 +33,16 @@ export type CoworkerPayload = Partial<{
 
 export type Office = {
   id: string;
-  organizationId: string;
   type: OfficeType;
+  organizationId: string;
+  organizationType: OrgType;
   name: string;
   address: string;
   contact: string[];
   description: string;
-  image?: string;
   capacity: number;
   occupied: number;
+  image?: string;
   // meetingRooms: number;
   // relaxZones: number;
   // printers: number;

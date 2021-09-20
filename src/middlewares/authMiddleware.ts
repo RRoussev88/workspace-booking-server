@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import { decode, verify } from 'jsonwebtoken';
 import jwkToPem from 'jwk-to-pem';
 import fetch from 'node-fetch';
-import { Organization } from 'types';
+import { Office, Organization } from 'types';
 
 const ERROR_MESSAGE = 'Unauthorized credentials';
 
@@ -11,45 +11,6 @@ const pems = {};
 export default class AuthMiddleware {
   constructor() {
     this.setup();
-  }
-
-  verifyToken(req: Request, res: Response, next: NextFunction) {
-    const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end(ERROR_MESSAGE);
-
-    const decodedJwt = jwt.decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
- 
-    const kid = decodedJwt.header.kid;
-    if (!pems[kid]) res.status(401).end(ERROR_MESSAGE);
-
-    const expirationTime = decodedJwt.payload.exp;
-    if (expirationTime * 1000 < new Date().valueOf()) res.status(401).end(ERROR_MESSAGE);
-
-    jwt.verify(token, pems[kid], (err) => {
-      if (err) res.status(401).end(ERROR_MESSAGE);
-      next();
-    });
-  }
-
-  checkOrgPermissions(
-    req: Request<{}, { Attributes: Organization } | string, { openOrg: Organization }>,
-    res: Response<{ Attributes: Organization } | string>,
-    next: NextFunction,
-  ) {
-    const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end(ERROR_MESSAGE);
-
-    const decodedJwt = jwt.decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
-
-    const username = decodedJwt.payload?.username;
-    const orgContacts = req.body.openOrg?.contact;
-    if (!!username && !!orgContacts && orgContacts.toString().includes(username)) {
-      next();
-    } else {
-      res.status(401).send('Unauthorized organization change');
-    }
   }
 
   private async setup() {
@@ -67,6 +28,69 @@ export default class AuthMiddleware {
       });
     } catch (error) {
       throw error;
+    }
+  }
+
+  verifyToken(req: Request, res: Response, next: NextFunction) {
+    const token = req.header('Authorization')?.split(' ')?.[1];
+    if (!token) res.status(401).end(ERROR_MESSAGE);
+
+    const decodedJwt = decode(token, { complete: true });
+    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+
+    const kid = decodedJwt.header.kid;
+    if (!pems[kid]) res.status(401).end(ERROR_MESSAGE);
+
+    const expirationTime = decodedJwt.payload.exp;
+    if (expirationTime * 1000 < new Date().valueOf()) res.status(401).end(ERROR_MESSAGE);
+
+    if (res.statusCode === 401) {
+      next();
+    }
+
+    verify(token, pems[kid], (err) => {
+      if (err) res.status(401).end(ERROR_MESSAGE);
+      next();
+    });
+  }
+
+  checkOrgPermissions(
+    req: Request<{}, { Attributes: Organization } | string, { openOrg: Organization }>,
+    res: Response<{ Attributes: Organization } | string>,
+    next: NextFunction,
+  ) {
+    const token = req.header('Authorization')?.split(' ')?.[1];
+    if (!token) res.status(401).end(ERROR_MESSAGE);
+
+    const decodedJwt = decode(token, { complete: true });
+    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+
+    const username = decodedJwt.payload?.username;
+    const orgContacts = req.body.openOrg?.contact;
+    if (!!username && !!orgContacts && orgContacts.toString().includes(username)) {
+      next();
+    } else {
+      res.status(401).send('Unauthorized organization change');
+    }
+  }
+
+  checkOfficePermissions(
+    req: Request<{}, { Attributes: Office } | string, { simpleOffice: Office }>,
+    res: Response<{ Attributes: Office } | string>,
+    next: NextFunction,
+  ) {
+    const token = req.header('Authorization')?.split(' ')?.[1];
+    if (!token) res.status(401).end(ERROR_MESSAGE);
+
+    const decodedJwt = decode(token, { complete: true });
+    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+
+    const username = decodedJwt.payload?.username;
+    const officeContacts = req.body.simpleOffice?.contact;
+    if (!!username && !!officeContacts && officeContacts.toString().includes(username)) {
+      next();
+    } else {
+      res.status(401).send('Unauthorized office change');
     }
   }
 }

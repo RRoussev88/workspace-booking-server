@@ -1,5 +1,5 @@
 import { config, DynamoDB } from 'aws-sdk';
-import { TableName } from 'types';
+import { Organization, TableName } from '../types';
 
 export default class DynamoService {
   dynamoClient: DynamoDB.DocumentClient;
@@ -61,4 +61,31 @@ export default class DynamoService {
 
   deleteDocument = async (TableName: TableName, documentId: string) =>
     await this.dynamoClient.delete({ TableName, Key: { id: documentId } }).promise();
+
+  deleteOfficeTransaction = async (orgId: string, officeId: string) => {
+    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
+      TableName.COWORKING_SPACES,
+      orgId,
+    );
+    const { offices } = response.Item as Organization;
+    
+    if (!offices) return;
+    const indexToRemove = offices.findIndex((id) => id === officeId);
+    return await this.dynamoClient
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TableName.COWORKING_SPACES,
+              Key: { id: orgId },
+              UpdateExpression: `REMOVE offices[${indexToRemove}]`,
+              ConditionExpression: `offices[${indexToRemove}] = :idToRemove`,
+              ExpressionAttributeValues: { ':idToRemove': officeId },
+            },
+          },
+          { Delete: { TableName: TableName.SIMPLE_OFFICES, Key: { id: officeId } } },
+        ],
+      })
+      .promise();
+  };
 }

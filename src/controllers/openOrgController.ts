@@ -27,6 +27,18 @@ export default class OpenOrgsController {
     );
   }
 
+  private getAndForwardOpenOrgById(req: Request, _: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.COWORKING_SPACES, req.params.id)
+      .then((org) => {
+        req.body.openOrg = org.Item;
+        next();
+      })
+      .catch((error) => {
+        next(error);
+      });
+  }
+
   getAllOpenOrgs(_: Request, res: Response, next: NextFunction) {
     new DynamoService()
       .getDocuments(TableName.COWORKING_SPACES)
@@ -40,18 +52,6 @@ export default class OpenOrgsController {
     new DynamoService()
       .getDocumentById(TableName.COWORKING_SPACES, req.params.id)
       .then((org) => res.json(org))
-      .catch((error) => {
-        next(error);
-      });
-  }
-
-  getAndForwardOpenOrgById(req: Request, _: Response, next: NextFunction) {
-    new DynamoService()
-      .getDocumentById(TableName.COWORKING_SPACES, req.params.id)
-      .then((org) => {
-        req.body.openOrg = org.Item;
-        next();
-      })
       .catch((error) => {
         next(error);
       });
