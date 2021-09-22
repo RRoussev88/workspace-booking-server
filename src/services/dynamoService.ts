@@ -1,5 +1,5 @@
 import { config, DynamoDB } from 'aws-sdk';
-import { Organization, TableName } from '../types';
+import { Office, Organization, TableName } from '../types';
 
 export default class DynamoService {
   dynamoClient: DynamoDB.DocumentClient;
@@ -62,13 +62,41 @@ export default class DynamoService {
   deleteDocument = async (TableName: TableName, documentId: string) =>
     await this.dynamoClient.delete({ TableName, Key: { id: documentId } }).promise();
 
+  createOfficeTransaction = async (newOffice: Office) => {
+    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
+      TableName.COWORKING_SPACES,
+      newOffice.organizationId,
+    );
+    const { offices } = response.Item as Organization;
+
+    if (!offices) return;
+
+    return await this.dynamoClient
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TableName.COWORKING_SPACES,
+              Key: { id: newOffice.organizationId },
+              UpdateExpression: 'SET #offices = list_append(#offices, :newOfficeIds)',
+              ConditionExpression: `NOT contains(#offices, :newOfficeId)`,
+              ExpressionAttributeNames: { '#offices': 'offices' },
+              ExpressionAttributeValues: { ':newOfficeIds': [newOffice.id], ':newOfficeId': newOffice.id },
+            },
+          },
+          { Put: { TableName: TableName.SIMPLE_OFFICES, Item: newOffice } },
+        ],
+      })
+      .promise();
+  };
+
   deleteOfficeTransaction = async (orgId: string, officeId: string) => {
     const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
       TableName.COWORKING_SPACES,
       orgId,
     );
     const { offices } = response.Item as Organization;
-    
+
     if (!offices) return;
     const indexToRemove = offices.findIndex((id) => id === officeId);
     return await this.dynamoClient
@@ -84,6 +112,25 @@ export default class DynamoService {
             },
           },
           { Delete: { TableName: TableName.SIMPLE_OFFICES, Key: { id: officeId } } },
+        ],
+      })
+      .promise();
+  };
+
+  deleteOrganizationTransaction = async (orgId: string) => {
+    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
+      TableName.COWORKING_SPACES,
+      orgId,
+    );
+    const { offices } = response.Item as Organization;
+
+    return await this.dynamoClient
+      .transactWrite({
+        TransactItems: [
+          ...(offices ?? []).map((officeId) => ({
+            Delete: { TableName: TableName.SIMPLE_OFFICES, Key: { id: officeId } },
+          })),
+          { Delete: { TableName: TableName.COWORKING_SPACES, Key: { id: orgId } } },
         ],
       })
       .promise();

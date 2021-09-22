@@ -21,7 +21,7 @@ export default class OfficesController {
     this.router.patch('/', this.authMiddleware.checkOfficePermissions, this.updateOffice);
     this.router.get('/:id', this.getOfficeById);
     this.router.delete(
-      '/:id/org/:orgId',
+      '/:id',
       this.getAndForwardSimpleOfficeById,
       this.authMiddleware.checkOfficePermissions,
       this.deleteOffice,
@@ -31,8 +31,8 @@ export default class OfficesController {
   private getAndForwardSimpleOfficeById(req: Request, _: Response, next: NextFunction) {
     new DynamoService()
       .getDocumentById(TableName.SIMPLE_OFFICES, req.params.id)
-      .then((org) => {
-        req.body.simpleOffice = org.Item;
+      .then((office) => {
+        req.body.simpleOffice = office.Item;
         next();
       })
       .catch((error) => {
@@ -73,7 +73,7 @@ export default class OfficesController {
 
   addOffice(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .addDocument(TableName.SIMPLE_OFFICES, req.body.simpleOffice)
+      .createOfficeTransaction(req.body.simpleOffice)
       .then((office) => res.json(office))
       .catch((error) => {
         next(error);
@@ -91,7 +91,7 @@ export default class OfficesController {
 
   deleteOffice(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .deleteOfficeTransaction(req.params.orgId, req.params.id)
+      .deleteOfficeTransaction(req.body.simpleOffice?.organizationId, req.params.id)
       .then((result) => res.json(result))
       .catch((error) => {
         next(error);

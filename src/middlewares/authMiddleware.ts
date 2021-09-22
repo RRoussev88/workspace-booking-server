@@ -33,23 +33,34 @@ export default class AuthMiddleware {
 
   verifyToken(req: Request, res: Response, next: NextFunction) {
     const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end(ERROR_MESSAGE);
+    if (!token) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const decodedJwt = decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+    if (!decodedJwt) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const kid = decodedJwt.header.kid;
-    if (!pems[kid]) res.status(401).end(ERROR_MESSAGE);
+    if (!pems[kid]) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const expirationTime = decodedJwt.payload.exp;
-    if (expirationTime * 1000 < new Date().valueOf()) res.status(401).end(ERROR_MESSAGE);
-
-    if (res.statusCode === 401) {
-      next();
+    if (expirationTime * 1000 < new Date().valueOf()) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
     }
 
     verify(token, pems[kid], (err) => {
-      if (err) res.status(401).end(ERROR_MESSAGE);
+      if (err) {
+        res.status(401).end(ERROR_MESSAGE);
+        return;
+      }
       next();
     });
   }
@@ -60,10 +71,16 @@ export default class AuthMiddleware {
     next: NextFunction,
   ) {
     const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end(ERROR_MESSAGE);
+    if (!token) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const decodedJwt = decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+    if (!decodedJwt) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const username = decodedJwt.payload?.username;
     const orgContacts = req.body.openOrg?.contact;
@@ -80,10 +97,16 @@ export default class AuthMiddleware {
     next: NextFunction,
   ) {
     const token = req.header('Authorization')?.split(' ')?.[1];
-    if (!token) res.status(401).end(ERROR_MESSAGE);
+    if (!token) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const decodedJwt = decode(token, { complete: true });
-    if (!decodedJwt) res.status(401).end(ERROR_MESSAGE);
+    if (!decodedJwt) {
+      res.status(401).end(ERROR_MESSAGE);
+      return;
+    }
 
     const username = decodedJwt.payload?.username;
     const officeContacts = req.body.simpleOffice?.contact;

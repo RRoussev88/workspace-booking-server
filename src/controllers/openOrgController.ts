@@ -77,7 +77,7 @@ export default class OpenOrgsController {
 
   deleteOpenOrg(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .deleteDocument(TableName.COWORKING_SPACES, req.params.id)
+      .deleteOrganizationTransaction(req.params.id)
       .then((org) => res.json(org))
       .catch((error) => {
         next(error);
