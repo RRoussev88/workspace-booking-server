@@ -17,7 +17,7 @@ export default class OfficesController {
     this.router.use(this.authMiddleware.verifyToken);
     this.router.get('/', this.getAllOffices);
     this.router.get('/org/:orgId', this.getAllOfficesByOrgId);
-    this.router.put('/', this.authMiddleware.checkOfficePermissions, this.addOffice);
+    this.router.put('/', this.getAndForwardOpenOrgById, this.authMiddleware.checkOrgPermissions, this.addOffice);
     this.router.patch('/', this.authMiddleware.checkOfficePermissions, this.updateOffice);
     this.router.get('/:id', this.getOfficeById);
     this.router.delete(
@@ -33,6 +33,18 @@ export default class OfficesController {
       .getDocumentById(TableName.SIMPLE_OFFICES, req.params.id)
       .then((office) => {
         req.body.simpleOffice = office.Item;
+        next();
+      })
+      .catch((error) => {
+        next(error);
+      });
+  }
+
+  private getAndForwardOpenOrgById(req: Request, _: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.COWORKING_SPACES, req.body.simpleOffice.organizationId)
+      .then((org) => {
+        req.body.openOrg = org.Item;
         next();
       })
       .catch((error) => {
