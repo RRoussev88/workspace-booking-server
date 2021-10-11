@@ -1,5 +1,6 @@
-import { config, DynamoDB } from 'aws-sdk';
-import { Office, Organization, TableName } from '../types';
+import { AWSError, config, DynamoDB } from 'aws-sdk';
+import { PromiseResult } from 'aws-sdk/lib/request';
+import { Office, Organization, Reservation, TableName } from '../types';
 
 export default class DynamoService {
   dynamoClient: DynamoDB.DocumentClient;
@@ -62,7 +63,7 @@ export default class DynamoService {
   deleteDocument = async (TableName: TableName, documentId: string) =>
     await this.dynamoClient.delete({ TableName, Key: { id: documentId } }).promise();
 
-  createOfficeTransaction = async (newOffice: Office) => {
+  async createOfficeTransaction(newOffice: Office) {
     const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
       TableName.COWORKING_SPACES,
       newOffice.organizationId,
@@ -88,16 +89,85 @@ export default class DynamoService {
         ],
       })
       .promise();
-  };
+  }
 
-  deleteOfficeTransaction = async (orgId: string, officeId: string) => {
+  async createReservationTransaction(reservation: Reservation) {
     const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
+      TableName.SIMPLE_OFFICES,
+      reservation.officeId,
+    );
+
+    const { id, occupied } = response.Item as Office;
+
+    if (!id) return;
+
+    return await this.dynamoClient
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TableName.SIMPLE_OFFICES,
+              Key: { id },
+              UpdateExpression: 'SET #occupied = :occupied + 1',
+              ConditionExpression: `#capacity > :occupied`,
+              ExpressionAttributeNames: { '#occupied': 'occupied', '#capacity': 'capacity' },
+              ExpressionAttributeValues: { ':occupied': occupied },
+            },
+          },
+          { Put: { TableName: TableName.RESERVATIONS, Item: reservation } },
+        ],
+      })
+      .promise();
+  }
+
+  async deleteReservationTransaction(officeId: string, reservationId: string) {
+    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
+      TableName.SIMPLE_OFFICES,
+      officeId,
+    );
+
+    const { id, occupied } = response.Item as Office;
+
+    if (!id) return;
+
+    return await this.dynamoClient
+      .transactWrite({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TableName.SIMPLE_OFFICES,
+              Key: { id },
+              UpdateExpression: 'SET #occupied = :occupied - 1',
+              ConditionExpression: `#occupied > 0`,
+              ExpressionAttributeNames: { '#occupied': 'occupied' },
+              ExpressionAttributeValues: { ':occupied': occupied },
+            },
+          },
+          { Delete: { TableName: TableName.RESERVATIONS, Key: { id: reservationId } } },
+        ],
+      })
+      .promise();
+  }
+
+  async deleteOfficeTransaction(orgId: string, officeId: string) {
+    const orgResponse: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
       TableName.COWORKING_SPACES,
       orgId,
     );
-    const { offices } = response.Item as Organization;
+    const { offices } = orgResponse.Item as Organization;
 
     if (!offices) return;
+
+    const reservationsResponse: DynamoDB.DocumentClient.QueryOutput = await this.getDocumentByProperty(
+      TableName.RESERVATIONS,
+      'officeId',
+      officeId,
+    );
+
+    const reservations = reservationsResponse.Items as Reservation[];
+
+    if (!reservations) return;
+
     const indexToRemove = offices.findIndex((id) => id === officeId);
     return await this.dynamoClient
       .transactWrite({
@@ -112,27 +182,42 @@ export default class DynamoService {
             },
           },
           { Delete: { TableName: TableName.SIMPLE_OFFICES, Key: { id: officeId } } },
+          ...reservations.map((reservation) => ({
+            Delete: { TableName: TableName.RESERVATIONS, Key: { id: reservation.id } },
+          })),
         ],
       })
       .promise();
-  };
+  }
 
-  deleteOrganizationTransaction = async (orgId: string) => {
+  async deleteOrganizationTransaction(orgId: string) {
     const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
       TableName.COWORKING_SPACES,
       orgId,
     );
     const { offices } = response.Item as Organization;
 
+    const reservationsResponse: DynamoDB.DocumentClient.QueryOutput[] = (await Promise.all(
+      offices.map((officeId) => this.getDocumentByProperty(TableName.RESERVATIONS, 'officeId', officeId)),
+    )) as PromiseResult<DynamoDB.DocumentClient.QueryOutput, AWSError>[];
+
+    const reservations: Reservation[] = reservationsResponse.reduce(
+      (acc, current) => [...acc, ...current.Items],
+      [],
+    );
+
     return await this.dynamoClient
       .transactWrite({
         TransactItems: [
-          ...(offices ?? []).map((officeId) => ({
+          ...reservations.map((reservation) => ({
+            Delete: { TableName: TableName.RESERVATIONS, Key: { id: reservation.id } },
+          })),
+          ...offices.map((officeId) => ({
             Delete: { TableName: TableName.SIMPLE_OFFICES, Key: { id: officeId } },
           })),
           { Delete: { TableName: TableName.COWORKING_SPACES, Key: { id: orgId } } },
         ],
       })
       .promise();
-  };
+  }
 }

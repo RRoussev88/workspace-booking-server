@@ -53,7 +53,8 @@ export default class AuthController {
             .json({ errors: ['Incorrect username or password'] })
             .end();
         } else {
-          const token = (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse).AuthenticationResult;
+          const token = (result as CognitoIdentityServiceProvider.Types.InitiateAuthResponse)
+            .AuthenticationResult;
           const decodedJwt = jwt.decode(token.AccessToken, { complete: true });
           const payload: CoworkerPayload = {
             coworkerId: decodedJwt.payload?.sub,
@@ -62,7 +63,7 @@ export default class AuthController {
             authTime: decodedJwt.payload?.auth_time,
             issueTime: decodedJwt.payload?.iat,
             expTime: decodedJwt.payload?.exp,
-            organisations: decodedJwt.payload?.['cognito:groups']
+            organisations: decodedJwt.payload?.['cognito:groups'],
           };
           res.status(200).json({ token, payload }).end();
         }
@@ -98,9 +99,15 @@ export default class AuthController {
           body('password').isString().isLength({ min: 8 }),
         ];
       case AuthRoute.SIGNIN:
-        return [body('username').notEmpty().isLength({ min: 6 }), body('password').isString().isLength({ min: 8 })];
+        return [
+          body('username').notEmpty().isLength({ min: 6 }),
+          body('password').isString().isLength({ min: 8 }),
+        ];
       case AuthRoute.VERIFY:
-        return [body('username').notEmpty().isLength({ min: 6 }), body('code').isString().isLength({ min: 6, max: 6 })];
+        return [
+          body('username').notEmpty().isLength({ min: 6 }),
+          body('code').isString().isLength({ min: 6, max: 6 }),
+        ];
     }
   }
 }

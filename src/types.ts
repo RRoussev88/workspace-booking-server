@@ -8,6 +8,7 @@ export enum TableName {
   SIMPLE_OFFICES = 'simple-offices',
   COWORKING_SPACES = 'coworking-spaces',
   COMPANIES = 'companies',
+  RESERVATIONS = 'reservations',
 }
 
 export enum OfficeType {
@@ -60,3 +61,16 @@ export type Organization = {
 };
 
 export type Coworker = { id: string; email: string; name?: string; avatar?: string };
+
+export interface Reservation {
+  id: string;
+  officeId: string;
+  fromTime: number;
+  toTime: number;
+  user: string;
+}
+
+export interface NamedReservation extends Reservation {
+  workspaceId: string;
+}
+

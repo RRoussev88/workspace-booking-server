@@ -17,7 +17,12 @@ export default class OfficesController {
     this.router.use(this.authMiddleware.verifyToken);
     this.router.get('/', this.getAllOffices);
     this.router.get('/org/:orgId', this.getAllOfficesByOrgId);
-    this.router.put('/', this.getAndForwardOpenOrgById, this.authMiddleware.checkOrgPermissions, this.addOffice);
+    this.router.put(
+      '/',
+      this.getAndForwardOpenOrgById,
+      this.authMiddleware.checkOrgPermissions,
+      this.addOffice,
+    );
     this.router.patch('/', this.authMiddleware.checkOfficePermissions, this.updateOffice);
     this.router.get('/:id', this.getOfficeById);
     this.router.delete(
