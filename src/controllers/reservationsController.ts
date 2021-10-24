@@ -24,13 +24,26 @@ export default class ReservationsController {
       this.addReservation,
     );
     this.router.patch('/', this.authMiddleware.checkOfficePermissions, this.updateReservation);
-    this.router.get('/:id', this.getReservationsById);
+    this.router.get('/:id', this.getReservationById);
     this.router.delete(
       '/:id',
+      this.getAndForwardReservationById,
       this.getAndForwardSimpleOfficeById,
       this.authMiddleware.checkOfficePermissions,
       this.deleteReservation,
     );
+  }
+
+  private getAndForwardReservationById(req: Request, _: Response, next: NextFunction) {
+    new DynamoService()
+      .getDocumentById(TableName.RESERVATIONS, req.params.id)
+      .then((reservation) => {
+        req.body.reservation = reservation.Item;
+        next();
+      })
+      .catch((error) => {
+        next(error);
+      });
   }
 
   private getAndForwardSimpleOfficeById(req: Request, _: Response, next: NextFunction) {
@@ -59,18 +72,18 @@ export default class ReservationsController {
       .getDocumentByProperty(
         TableName.RESERVATIONS,
         req.query?.propName?.toString() ?? 'officeId',
-        req.params.orgId,
+        req.params.officeId,
       )
-      .then((offices) => res.json(offices))
+      .then((reservations) => res.json(reservations))
       .catch((error) => {
         next(error);
       });
   }
 
-  getReservationsById(req: Request, res: Response, next: NextFunction) {
+  getReservationById(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
       .getDocumentById(TableName.RESERVATIONS, req.params.id)
-      .then((office) => res.json(office))
+      .then((reservation) => res.json(reservation))
       .catch((error) => {
         next(error);
       });
@@ -79,7 +92,7 @@ export default class ReservationsController {
   addReservation(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
       .createReservationTransaction(req.body.reservation)
-      .then((office) => res.json(office))
+      .then((reservation) => res.json(reservation))
       .catch((error) => {
         next(error);
       });
@@ -88,7 +101,7 @@ export default class ReservationsController {
   updateReservation(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
       .updateDocument(TableName.RESERVATIONS, req.body.reservation)
-      .then((org) => res.json(org))
+      .then((reservation) => res.json(reservation))
       .catch((error) => {
         next(error);
       });

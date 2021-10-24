@@ -97,7 +97,7 @@ export default class DynamoService {
       reservation.officeId,
     );
 
-    const { id, occupied } = response.Item as Office;
+    const { id } = response.Item as Office;
 
     if (!id) return;
 
@@ -108,10 +108,10 @@ export default class DynamoService {
             Update: {
               TableName: TableName.SIMPLE_OFFICES,
               Key: { id },
-              UpdateExpression: 'SET #occupied = :occupied + 1',
-              ConditionExpression: `#capacity > :occupied`,
-              ExpressionAttributeNames: { '#occupied': 'occupied', '#capacity': 'capacity' },
-              ExpressionAttributeValues: { ':occupied': occupied },
+              UpdateExpression: 'SET #occupied = #occupied + :inc',
+              ConditionExpression: '#capacity > #occupied',
+              ExpressionAttributeNames: { '#capacity': 'capacity', '#occupied': 'occupied' },
+              ExpressionAttributeValues: { ':inc': 1 },
             },
           },
           { Put: { TableName: TableName.RESERVATIONS, Item: reservation } },
@@ -126,7 +126,7 @@ export default class DynamoService {
       officeId,
     );
 
-    const { id, occupied } = response.Item as Office;
+    const { id } = response.Item as Office;
 
     if (!id) return;
 
@@ -137,10 +137,10 @@ export default class DynamoService {
             Update: {
               TableName: TableName.SIMPLE_OFFICES,
               Key: { id },
-              UpdateExpression: 'SET #occupied = :occupied - 1',
-              ConditionExpression: `#occupied > 0`,
+              UpdateExpression: 'SET #occupied = #occupied - :dec',
+              ConditionExpression: '#occupied > :dec',
               ExpressionAttributeNames: { '#occupied': 'occupied' },
-              ExpressionAttributeValues: { ':occupied': occupied },
+              ExpressionAttributeValues: { ':dec': 1 },
             },
           },
           { Delete: { TableName: TableName.RESERVATIONS, Key: { id: reservationId } } },
