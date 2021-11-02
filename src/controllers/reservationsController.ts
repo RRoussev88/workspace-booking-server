@@ -91,7 +91,7 @@ export default class ReservationsController {
 
   addReservation(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .createReservationTransaction(req.body.reservation)
+      .addDocument(TableName.RESERVATIONS, req.body.reservation)
       .then((reservation) => res.json(reservation))
       .catch((error) => {
         next(error);
@@ -109,7 +109,7 @@ export default class ReservationsController {
 
   deleteReservation(req: Request, res: Response, next: NextFunction) {
     new DynamoService()
-      .deleteReservationTransaction(req.body.simpleOffice?.id, req.params.id)
+      .deleteDocument(TableName.RESERVATIONS, req.params.id)
       .then((result) => res.json(result))
       .catch((error) => {
         next(error);

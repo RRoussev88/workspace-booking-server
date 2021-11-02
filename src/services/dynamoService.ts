@@ -91,64 +91,6 @@ export default class DynamoService {
       .promise();
   }
 
-  async createReservationTransaction(reservation: Reservation) {
-    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
-      TableName.SIMPLE_OFFICES,
-      reservation.officeId,
-    );
-
-    const { id } = response.Item as Office;
-
-    if (!id) return;
-
-    return await this.dynamoClient
-      .transactWrite({
-        TransactItems: [
-          {
-            Update: {
-              TableName: TableName.SIMPLE_OFFICES,
-              Key: { id },
-              UpdateExpression: 'SET #occupied = #occupied + :inc',
-              ConditionExpression: '#capacity > #occupied',
-              ExpressionAttributeNames: { '#capacity': 'capacity', '#occupied': 'occupied' },
-              ExpressionAttributeValues: { ':inc': 1 },
-            },
-          },
-          { Put: { TableName: TableName.RESERVATIONS, Item: reservation } },
-        ],
-      })
-      .promise();
-  }
-
-  async deleteReservationTransaction(officeId: string, reservationId: string) {
-    const response: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
-      TableName.SIMPLE_OFFICES,
-      officeId,
-    );
-
-    const { id } = response.Item as Office;
-
-    if (!id) return;
-
-    return await this.dynamoClient
-      .transactWrite({
-        TransactItems: [
-          {
-            Update: {
-              TableName: TableName.SIMPLE_OFFICES,
-              Key: { id },
-              UpdateExpression: 'SET #occupied = #occupied - :dec',
-              ConditionExpression: '#occupied > :dec',
-              ExpressionAttributeNames: { '#occupied': 'occupied' },
-              ExpressionAttributeValues: { ':dec': 1 },
-            },
-          },
-          { Delete: { TableName: TableName.RESERVATIONS, Key: { id: reservationId } } },
-        ],
-      })
-      .promise();
-  }
-
   async deleteOfficeTransaction(orgId: string, officeId: string) {
     const orgResponse: DynamoDB.DocumentClient.GetItemOutput = await this.getDocumentById(
       TableName.COWORKING_SPACES,
@@ -164,9 +106,7 @@ export default class DynamoService {
       officeId,
     );
 
-    const reservations = reservationsResponse.Items as Reservation[];
-
-    if (!reservations) return;
+    const reservations = (reservationsResponse.Items ?? []) as Reservation[];
 
     const indexToRemove = offices.findIndex((id) => id === officeId);
     return await this.dynamoClient
