@@ -1,6 +1,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import morgan from 'morgan';
 import App from './app';
 import AuthController from './controllers/authController';
 import OfficesController from './controllers/officesController';
@@ -17,7 +18,7 @@ const app = new App({
     new OpenOrgsController(),
     new ReservationsController(),
   ],
-  middlewares: [cors(), express.json(), express.urlencoded({ extended: true })],
+  middlewares: [cors(), express.json(), express.urlencoded({ extended: true }), morgan('combined')],
 });
 
 app.listen();
